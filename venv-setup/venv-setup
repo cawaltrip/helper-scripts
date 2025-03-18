@@ -7,7 +7,7 @@
 get_pyenv_version() {
   setopt PIPE_FAIL
   local version=$1
-  pyenv versions --skip-aliases --skip-envs | sort -r -V | grep -E "^[[:space:]]*${version}" | head -n1 | xargs
+  pyenv versions --skip-aliases --skip-envs --bare | sort -r -V | grep -E "^${version}" | head -n1 | xargs
 }
 
 # Get the version number from the command line.
@@ -36,7 +36,7 @@ py_version=$(get_pyenv_version $version)
 if (( $? != 0 )); then
   echo "Error: Python version $version not found."
   echo "Attempting to install Python version $version..."
-  pyenv install ${version}
+  pyenv install ${py_version}
   if (( $? != 0 )); then
     echo "Error: Failed to install Python version $version."
     exit 1
@@ -59,7 +59,7 @@ fi
 
 echo "Creating a virtual environment with pipenv using Python version $py_version."
 # Could pipenv --rm here to remove any existing virtual environment.
-pipenv --python $py_version
+PIPENV_VENV_IN_PROJECT=1 pipenv --python $py_version
 if (( $? != 0 )); then
   echo "Error: Failed to create a virtual environment with pipenv."
   exit 1
