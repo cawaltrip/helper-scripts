@@ -1,0 +1,67 @@
+#!/usr/bin/env zsh
+
+# This script sets up a Python virtual environment using pyenv and pipenv.
+# Input: the version of Pythong to use (e.g., 3.8.10).
+
+# Function to get the python version from pyenv. `xargs` is used to trim leading and trailing whitespace.
+get_pyenv_version() {
+  setopt PIPE_FAIL
+  local version=$1
+  pyenv versions --skip-aliases --skip-envs | sort -r -V | grep -E "^[[:space:]]*${version}" | head -n1 | xargs
+}
+
+# Get the version number from the command line.
+version="$1"
+
+# Check if version was provided
+if [ -z "$version" ]; then
+  echo "Error: Please provide a Python version (e.g., 3.8.10)"
+  exit 1
+fi
+
+# Check if pyenv is installed
+if ! command -v pyenv &> /dev/null; then
+  echo "Error: pyenv is not installed. Please install pyenv first."
+  exit 1
+fi
+
+# Check if pipenv is installed
+if ! command -v pipenv &> /dev/null; then
+  echo "Error: pipenv is not installed. Please install pipenv first."
+  exit 1
+fi
+
+# Check if the specified Python version is installed with pyenv and attempt to install it if not
+py_version=$(get_pyenv_version $version)
+if (( $? != 0 )); then
+  echo "Error: Python version $version not found."
+  echo "Attempting to install Python version $version..."
+  pyenv install ${version}
+  if (( $? != 0 )); then
+    echo "Error: Failed to install Python version $version."
+    exit 1
+  else
+    echo "Python version $version installed successfully."
+    py_version=$(get_pyenv_version $version)
+    if (( $? != 0 )); then
+      echo "Error: Python version $version not found after installation."
+      exit 1
+    fi
+  fi
+fi
+
+echo "Python version $py_version found. Setting it as the local version."
+pyenv local $py_version
+if (( $? != 0 )); then
+  echo "Error: Failed to set local Python version to $py_version."
+  exit 1
+fi
+
+echo "Creating a virtual environment with pipenv using Python version $py_version."
+# Could pipenv --rm here to remove any existing virtual environment.
+pipenv --python $py_version
+if (( $? != 0 )); then
+  echo "Error: Failed to create a virtual environment with pipenv."
+  exit 1
+fi
+echo "Virtual environment created successfully with Python version $py_version."
